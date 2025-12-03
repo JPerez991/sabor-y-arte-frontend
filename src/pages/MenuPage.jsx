@@ -1,4 +1,3 @@
-// src/pages/MenuPage.jsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, X, ChevronLeft, ChevronRight, ChevronDown, ChefHat } from 'lucide-react';
@@ -10,14 +9,71 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
+// Función para obtener imágenes
+const getItemImages = (item) => {
+  // Prioridad 1: Imágenes desde el backend
+  if (item.images && item.images.length > 0) {
+    return item.images;
+  }
+  
+  // Prioridad 2: Imagen principal
+  if (item.image) {
+    return [item.image];
+  }
+  
+  // Fallback: Imágenes de Unsplash
+  return [
+    `https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=600&fit=crop&crop=center&auto=format`,
+    `https://images.unsplash.com/photo-1484980972926-edee96e0960d?w=800&h=600&fit=crop&crop=center&auto=format`,
+  ];
+};
+
+// Función para obtener ingredientes
+const getItemIngredients = (item) => {
+  // Usar ingredientes del backend si existen
+  if (item.ingredients && item.ingredients.length > 0) {
+    return item.ingredients;
+  }
+  
+  // Fallback
+  return [
+    "Ingredientes seleccionados",
+    "Frescos y de calidad",
+    "Preparación artesanal"
+  ];
+};
+
+// Función para formatear precios
+const formatPrice = (price) => {
+  const priceNumber = typeof price === 'number' ? price : parseFloat(price) || 0;
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0
+  }).format(priceNumber);
+};
+
+// Componente principal MenuPage
 const MenuPage = ({ menuData }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const categories = menuData?.categories || [];
-  const allItems = categories.flatMap(category => category.items);
+  // Si no hay datos, mostrar loading
+  if (!menuData || !menuData.categories) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-orange-50 to-rose-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Cargando datos del menú...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const categories = menuData.categories;
+  const allItems = categories.flatMap(category => category.items || []);
 
   const filteredItems = selectedCategory === 'all' 
     ? allItems 
@@ -33,81 +89,17 @@ const MenuPage = ({ menuData }) => {
   ];
 
   const handleItemClick = (item) => {
-    setSelectedItem(item);
+    setSelectedItem({
+      ...item,
+      images: getItemImages(item),
+      ingredients: getItemIngredients(item)
+    });
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
-  };
-
-  // Imágenes de ejemplo para el carrusel
-  const getItemImages = (item) => {
-    return [
-      `https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=600&fit=crop&crop=center`,
-      `https://images.unsplash.com/photo-1484980972926-edee96e0960d?w=800&h=600&fit=crop&crop=center`,
-      `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&crop=center`,
-    ];
-  };
-
-  // Ingredientes de ejemplo
-  const getItemIngredients = (item) => {
-    const ingredientsMap = {
-      1: [
-        "Pasta fresca artesanal",
-        "Salsa de trufa negra",
-        "Champiñones silvestres",
-        "Queso parmesano",
-        "Aceite de oliva extra virgen",
-        "Hierbas frescas"
-      ],
-      2: [
-        "Salmón fresco del Atlántico",
-        "Glaseado de miel y soja",
-        "Jengibre fresco",
-        "Ajo",
-        "Pimienta rosa",
-        "Cebollín"
-      ],
-      3: [
-        "Arroz arbóreo",
-        "Espinacas frescas",
-        "Pesto de albahaca",
-        "Piñones tostados",
-        "Caldo de verduras",
-        "Queso parmesano"
-      ],
-      4: [
-        "Pollo marinado 24h",
-        "Mezcla de especias tandoori",
-        "Yogur natural",
-        "Jengibre",
-        "Ajo",
-        "Limón"
-      ],
-      5: [
-        "Lechuga romana fresca",
-        "Crutones artesanales",
-        "Queso parmesano",
-        "Salsa césar casera",
-        "Anchoas",
-        "Pimienta negra"
-      ],
-      6: [
-        "Quinoa orgánica",
-        "Aguacate hass",
-        "Tomate cherry",
-        "Pepino",
-        "Limón fresco",
-        "Aceite de oliva"
-      ]
-    };
-    return ingredientsMap[item.id] || [
-      "Ingredientes frescos",
-      "Especias seleccionadas",
-      "Productos de temporada"
-    ];
   };
 
   return (
@@ -117,7 +109,7 @@ const MenuPage = ({ menuData }) => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{menuData?.restaurantName}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{menuData.restaurantName || "Mi Restaurante"}</h1>
               <p className="text-sm text-gray-600">Menú digital</p>
             </div>
             <button className="p-2 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-colors">
@@ -180,6 +172,7 @@ const MenuPage = ({ menuData }) => {
                 key={item.id} 
                 item={item} 
                 onClick={() => handleItemClick(item)}
+                formatPrice={formatPrice}
               />
             ))}
           </AnimatePresence>
@@ -194,27 +187,20 @@ const MenuPage = ({ menuData }) => {
       </div>
 
       {/* Modal Minimalista con Carrusel */}
-      <ItemModal 
-        isOpen={isModalOpen}
-        item={selectedItem}
-        onClose={closeModal}
-        getItemImages={getItemImages}
-        getItemIngredients={getItemIngredients}
-      />
+      {isModalOpen && selectedItem && (
+        <ItemModal 
+          item={selectedItem}
+          onClose={closeModal}
+          formatPrice={formatPrice}
+        />
+      )}
     </div>
   );
 };
 
-// Componente de Card Individual (se mantiene igual)
-const MenuItemCard = ({ item, onClick }) => {
+// Componente de Card Individual
+const MenuItemCard = ({ item, onClick, formatPrice }) => {
   const [isHovered, setIsHovered] = useState(false);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP'
-    }).format(price);
-  };
 
   const getBadgeColor = (badge) => {
     const colors = {
@@ -247,9 +233,9 @@ const MenuItemCard = ({ item, onClick }) => {
       onClick={onClick}
     >
       <div className="relative h-32 bg-gradient-to-br from-orange-100 to-red-100 overflow-hidden">
-        {item.image ? (
+        {item.images && item.images[0] ? (
           <img
-            src={item.image}
+            src={item.images[0]}
             alt={item.name}
             className="w-full h-full object-cover"
           />
@@ -285,7 +271,7 @@ const MenuItemCard = ({ item, onClick }) => {
           {item.name}
         </h3>
         <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">
-          {item.description}
+          {item.description || "Delicioso plato preparado con ingredientes frescos"}
         </p>
       </div>
     </motion.div>
@@ -293,20 +279,11 @@ const MenuItemCard = ({ item, onClick }) => {
 };
 
 // Modal Minimalista con Carrusel e Ingredientes
-const ItemModal = ({ isOpen, item, onClose, getItemImages, getItemIngredients }) => {
+const ItemModal = ({ item, onClose, formatPrice }) => {
   const [showIngredients, setShowIngredients] = useState(false);
 
-  if (!isOpen || !item) return null;
-
-  const images = getItemImages(item);
-  const ingredients = getItemIngredients(item);
-  
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP'
-    }).format(price);
-  };
+  const images = item.images || getItemImages(item);
+  const ingredients = item.ingredients || getItemIngredients(item);
 
   return (
     <motion.div
@@ -378,6 +355,11 @@ const ItemModal = ({ isOpen, item, onClose, getItemImages, getItemIngredients })
               {formatPrice(item.price)}
             </div>
           </div>
+
+          {/* Descripción */}
+          <p className="text-gray-600 mb-6">
+            {item.description || "Delicioso plato preparado con ingredientes de la más alta calidad."}
+          </p>
 
           {/* Botón de Ingredientes */}
           <motion.div
